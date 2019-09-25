@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      .tagsWrapper {
+        max-width: 30em;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      .tags {
+        margin-left: 0.25rem;
+        margin-right: 0.25rem;
+        background-color: #000;
+        color: #fff;
+        display: inline-block;
+        padding-left: 8px;
+        padding-right: 8px;
+        text-align: center;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      #dropdown {
+        max-height: 300px;
+        background: #efefef;
+        cursor: pointer;
+        overflow: scroll;
+      }
+
+      .custom_input {
+        height: 2.8rem;
+        background: #ffffff;
+        border: 0.1rem solid #cfcfcf;
+        font-size: 18px;
+        outline: none;
+        box-sizing: border-box;
+        border-radius: 0.6rem;
+        color: #1c1c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>Enter Country Code</h1>
+      <div
+        class="custom_input"
+        style="display: flex ;   align-items: center;"
+        id="master_div"
+      >
+        <div id="tagsWrapper" class="tagsWrapper"></div>
+        <input
+          style="border: none;width: 100%;    height: 2rem;"
+          type="text"
+          id="searchBox"
+          oninput="handleSearch()"
+          placeholder="Add a Country"
+        />
+      </div>
+      <div id="dropdown"></div>
+      <div id="jsonViewer"></div>
+    </div>
+  </body>
+  <script>
+    const store = {
+      result: [],
+      searchResult: [],
+      tags: [],
+      selected: {}
+    };
+    document.getElementById("searchBox").addEventListener("keyup", e => {
+      if (e.target.selectionStart === 0 && e.keyCode === 8) {
+        const removedTag = store.tags.splice(store.tags.length - 1);
+        if (Object.keys(store.selected).length !== 0) {
+          delete store.selected[
+            removedTag[0].getAttribute("data-numeric-code")
+          ];
+        }
+        renderTags();
+        renderJson();
+      }
+    });
+    document
+      .getElementById("dropdown")
+      .addEventListener("click", handleDropdownClick);
+
+    document
+      .getElementById("tagsWrapper")
+      .addEventListener("click", handleRemoveTags);
+
+    function renderJson() {
+      cleanNodes("jsonViewer");
+      store.result
+        .filter(country =>
+          Object.keys(store.selected).includes(country.numericCode)
+        )
+        .map(json => {
+          const myNode = document.getElementById("jsonViewer");
+          var node = document.createElement("div");
+          var textnode = document.createTextNode(JSON.stringify(json, null, 4));
+          node.appendChild(textnode);
+          myNode.appendChild(node);
+        });
+    }
+
+    function handleRemoveTags(e) {
+      delete store.selected[e.target.getAttribute("data-numeric-code")];
+      cleanNodes("jsonViewer");
+      renderJson();
+      document.getElementById("tagsWrapper").removeChild(e.target);
+    }
+
+    function renderTags() {
+      cleanNodes("tagsWrapper");
+      [...new Set(store.tags)].map(tags => {
+        document
+          .getElementById("tagsWrapper")
+          .appendChild(tags)
+          .classList.add("tags");
+      });
+    }
+    function search(obj, keyword) {}
+
+    function cleanNodes(node) {
+      const myNode = document.getElementById(node);
+      while (myNode.firstChild) {
+        myNode.removeChild(myNode.firstChild);
+      }
+    }
+    function handleSearch() {
+      cleanNodes("dropdown");
+      var searchString = document.getElementById("searchBox").value;
+      store.searchResult = store.result.filter(country =>
+        country.name.toUpperCase().includes(searchString.toUpperCase())
+      );
+      if (!store.searchResult.length) {
+        var node = document.createElement("div");
+        var textnode = document.createTextNode("No data found");
+        node.appendChild(textnode);
+        document.getElementById("dropdown").appendChild(node);
+      }
+      store.searchResult.map((res, index) => {
+        var node = document.createElement("div");
+        node.dataset.numericCode = res.numericCode;
+        var textnode = document.createTextNode(res.name);
+        node.appendChild(textnode);
+        document.getElementById("dropdown").appendChild(node);
+      });
+    }
+    async function getData(url = "") {
+      const response = await fetch(url);
+      return await response.json();
+    }
+    getData("https://restcountries.eu/rest/v2/all").then(res => {
+      store.result = res;
+    });
+
+    function handleDropdownClick(e) {
+      store.selected[e.target.getAttribute("data-numeric-code")] = true;
+      store.tags.push(e.target);
+      renderTags();
+      renderJson();
+    }
+  </script>
+</html>
