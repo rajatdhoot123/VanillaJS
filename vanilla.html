@@ -61,6 +61,7 @@
     </div>
   </body>
   <script>
+    let results = [];
     const store = {
       result: [],
       searchResult: [],
@@ -118,7 +119,33 @@
           .classList.add("tags");
       });
     }
-    function search(obj, keyword) {}
+    let displayKey = null;
+    function searchObj(obj, query) {
+      let arrayLength = 0;
+      let count = 0;
+      for (var key in obj) {
+        count++;
+        var value = obj[key];
+        if (typeof value === "object") {
+          if (Array.isArray(value)) {
+            arrayLength = value.length;
+            displayKey = key;
+          } else {
+          }
+          searchObj(value, query);
+        }
+        if (
+          typeof value === "string" &&
+          value.toUpperCase().includes(query.toUpperCase())
+        ) {
+          results.push({ [displayKey || key]: value });
+          if (arrayLength === count) {
+            displayKey = null;
+          }
+        }
+      }
+      return results;
+    }
 
     function cleanNodes(node) {
       const myNode = document.getElementById(node);
@@ -128,10 +155,13 @@
     }
     function handleSearch() {
       cleanNodes("dropdown");
+      results = [];
       var searchString = document.getElementById("searchBox").value;
-      store.searchResult = store.result.filter(country =>
-        country.name.toUpperCase().includes(searchString.toUpperCase())
-      );
+      searchObj(store.result, searchString);
+      store.searchResult = results;
+      // store.result.filter(country =>
+      //   country.name.toUpperCase().includes(searchString.toUpperCase())
+      // );
       if (!store.searchResult.length) {
         var node = document.createElement("div");
         var textnode = document.createTextNode("No data found");
@@ -141,7 +171,7 @@
       store.searchResult.map((res, index) => {
         var node = document.createElement("div");
         node.dataset.numericCode = res.numericCode;
-        var textnode = document.createTextNode(res.name);
+        var textnode = document.createTextNode(JSON.stringify(res, null, 4));
         node.appendChild(textnode);
         document.getElementById("dropdown").appendChild(node);
       });
